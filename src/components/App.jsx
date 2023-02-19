@@ -1,35 +1,30 @@
-import React from 'react';
+import { useState } from 'react';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import { nanoid } from 'nanoid';
-// import { ContactForm } from './ContatctForm/ContatctForm';
 import { Filter } from './Filter/Filter';
 import { ContactList } from './ContactList/ContactList';
 import { ContactFormik } from './ContatctForm/ContactFormik';
+import { useLocalStorage } from './hooks/hooks';
 
-export class App extends React.Component {
-  state = {
-    contacts: [],
-    filter: '',
-  };
+export const App = () => {
+  const [contacts, setContacts] = useLocalStorage('myContacts');
+  const [filter, setFilter] = useState('');
 
-  trackInputFilter = event => {
+  const trackInputFilter = event => {
     const { currentTarget: input } = event;
-    this.setState({ [input.name]: input.value });
+    setFilter(input.value);
   };
 
-  filterListName = () => {
-    const normalizeName = this.state.filter.toLocaleLowerCase();
-    return this.state.contacts.filter(el =>
-      el.name.toLowerCase().includes(normalizeName)
+  const filterListName = () => {
+    const normalizeName = filter.toLocaleLowerCase();
+    return contacts.filter(el => el.name.toLowerCase().includes(normalizeName));
+  };
+
+  const addContact = ({ name, number }) => {
+    const isContact = contacts.some(
+      el => el.name.toLocaleLowerCase() === name.toLocaleLowerCase()
     );
-  };
-
-  addContact = ({ name, number }) => {
-    if (
-      this.state.contacts.some(
-        el => el.name.toLocaleLowerCase() === name.toLocaleLowerCase()
-      )
-    ) {
+    if (isContact) {
       return Notify.failure(`${name} is already in contacts`);
     }
     const contact = {
@@ -37,56 +32,35 @@ export class App extends React.Component {
       name,
       number,
     };
-    this.setState(({ contacts }) => ({
-      contacts: [contact, ...contacts],
-    }));
+    setContacts(prevState => [contact, ...prevState]);
   };
 
-  handlDelete = event => {
+  const handlDelete = event => {
     const { id } = event.target;
-    this.setState(({ contacts }) => ({
-      contacts: contacts.filter((el, i) => i !== Number(id)),
-    }));
+    setContacts(contacts.filter((el, i) => i !== Number(id)));
   };
 
-  componentDidMount() {
-    const localStorageContacts = JSON.parse(localStorage.getItem('contacts'));
-    if (localStorageContacts) {
-      this.setState({ contacts: localStorageContacts });
-    }
-  }
+  return (
+    <div
+      style={{
+        // height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        fontSize: 40,
+        color: '#010101',
+      }}
+    >
+      <h1 style={{ fontSize: 36 }}>Phonebook</h1>
+      <ContactFormik onSubmit={addContact} />
 
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.contacts !== prevState.contacts) {
-      localStorage.setItem('contacts', JSON.stringify(this.state.contacts));
-    }
-  }
+      <h2 style={{ fontSize: 36, marginTop: 50, marginBottom: 20 }}>
+        Contacts
+      </h2>
+      <Filter filterName={trackInputFilter} />
 
-  render() {
-    const { trackInputFilter, filterListName, addContact, handlDelete } = this;
-
-    return (
-      <div
-        style={{
-          // height: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          fontSize: 40,
-          color: '#010101',
-        }}
-      >
-        <h1 style={{ fontSize: 36 }}>Phonebook</h1>
-        <ContactFormik onSubmit={addContact} />
-
-        <h2 style={{ fontSize: 36, marginTop: 50, marginBottom: 20 }}>
-          Contacts
-        </h2>
-        <Filter filterName={trackInputFilter} />
-
-        <ContactList filterList={filterListName} handlDelete={handlDelete} />
-      </div>
-    );
-  }
-}
+      <ContactList filterList={filterListName} handlDelete={handlDelete} />
+    </div>
+  );
+};
